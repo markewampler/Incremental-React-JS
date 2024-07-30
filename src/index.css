@@ -1,0 +1,239 @@
+.attribute-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px;
+  background-color: #c6cedd;
+  border-radius: 10px;
+}
+
+.attribute-card {
+  flex: 1;
+  margin: 5px 20px;
+  text-align: center;
+  
+  border-radius: 10px;
+  padding: 5px;
+  background-color: #e0e0e0;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.attribute-card h2 {
+  margin: 5px;
+}
+
+.attribute-card p {
+  margin: 5px;
+}
+
+.attribute-card.highlight {
+  color: green;
+  border: 2px solid green;
+  transform: scale(1.2);
+}
+
+.player-info {
+  margin: 10px 0;
+  background-color: #8993ac;
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+}
+
+.player-info h3 {
+  margin: 5px;
+}
+
+.skill-list {
+  background-color: #637394;
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+}
+
+.skill {
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  justify-content: flex-start; /* Align items at the start of the container */
+  padding: 10px;
+  margin: 5px 0;
+  background-color: #c6cedd;
+  border-radius: 10px;
+  color: black;
+  cursor: pointer;
+  text-align: center; /* Center-align text */
+  border: 2px solid transparent; /* Default border */
+  transition: border-color 0.3s ease; /* Smooth transition for border color */
+}
+
+.skill.selected {
+  background-color: #e0e0e0;
+}
+
+.skill.selected .progress-bar {
+  background-color: #49d1ff; /* Light blue background for progress bar when selected */
+}
+
+.skill-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  width: 100%;
+}
+
+.skill-name {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+}
+
+.skill-effects {
+  display: flex; /* Arrange items in a row */
+  flex-wrap: wrap; /* Allow wrapping if necessary */
+  gap: 10px; /* Adjust gap between items as needed */
+  align-items: center; /* Center items vertically */
+}
+
+.skill-effect {
+  margin: 0; /* Reset margin if necessary */
+  padding: 0 5px; /* Add padding for spacing within items */
+}
+
+
+.skill-extra {
+  flex: 1;
+  text-align: right;
+}
+
+.progress-bar {
+  width: 100%;
+  background-color: #e0e0e0; /* Default background color */
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 5px; /* Space between name and progress bar */
+  transition: background-color 0.01s ease; /* Smooth transition for background color */
+}
+
+.progress {
+  height: 10px;
+  background-color: #4caf50; /* Default progress color */
+  transition: width 0.25s ease;
+}
+
+.skill.selected .progress {
+  background-color: #008905; /* Default progress color */
+}
+
+.class-change-panel {
+  margin: 10px 0;
+  background-color: #8993ac;
+  padding: 10px;
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  justify-content: center;
+  gap: 10px; /* Adjust the gap between buttons */
+}
+.class-list-button {
+  margin: 5px;
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 10px;
+}
+.player-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px;
+  background-color: #c6cedd;
+  border-radius: 10px;
+  margin-top: 10px;
+  color: black;
+}
+
+.player-info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #e0e0e0;
+}
+
+.age-dp {
+  flex: 1;
+  text-align: center;
+}
+
+.location {
+  flex: 1;
+  text-align: center;
+}
+
+.wealth {
+  flex: 1;
+  text-align: center;
+}
+
+.player-info-box div {
+  margin-bottom: 5px;
+}
+
+.player-info-box button {
+  margin-top: 10px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.player-info-box button:hover {
+  background-color: #0056b3;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it overlays other elements */
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 600px;
+  width: 80%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-buttons button {
+  margin-left: 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal-buttons button:hover {
+  background-color: #0056b3;
+}
