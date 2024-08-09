@@ -7,11 +7,12 @@
   border-radius: 10px;
 }
 
+
+
 .attribute-card {
   flex: 1;
   margin: 5px 20px;
   text-align: center;
-  
   border-radius: 10px;
   padding: 5px;
   background-color: #e0e0e0;
@@ -26,10 +27,67 @@
   margin: 5px;
 }
 
-.attribute-card.highlight {
-  color: green;
-  border: 2px solid green;
-  transform: scale(1.2);
+.attribute-card, .player-info {
+  position: relative;
+}
+
+.attribute-card.highlight,
+.divine-points.highlight,
+.player-info-box.highlight,
+.highlight,
+.highlight p,
+.highlight h2 {
+  background-color: #d4edda; /* Light green background */
+  transition: background-color 0.3s ease; /* Smooth transition for background color */
+  color: #155724; /* Dark green text color */
+}
+
+.dp-attribute-container {
+  display: grid;
+  border: 2px solid black;
+  border-radius: 5px;
+  padding:10px;
+}
+
+.attribute-control, .attribute-buttons, .attribute-value {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.attribute-control {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(50px, auto)) 1fr repeat(3, minmax(50px, auto));
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 5px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.attribute-name {
+  text-align: left;
+  width: 50px;
+}
+
+.attribute-button {
+  width: 40px;
+  text-align: center;
+}
+.attribute-buttons {
+  display:flex;
+  width:150px; 
+  gap: 10px;
+  flex: 1;
+}
+
+.attribute-value {
+  text-align: center;
+  min-width: 75px;
+}
+
+.attribute-control:hover, .attribute-control:focus-within {
+  background-color: #e0f7fa;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .player-info {
@@ -112,7 +170,7 @@
   border-radius: 5px;
   overflow: hidden;
   margin-top: 5px; /* Space between name and progress bar */
-  transition: background-color 0.01s ease; /* Smooth transition for background color */
+  transition: background-color 0.25s ease; /* Smooth transition for background color */
 }
 
 .progress {
@@ -155,7 +213,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 10px;
+  margin: 5px 10px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -170,6 +228,15 @@
 .location {
   flex: 1;
   text-align: center;
+}
+.location-item {
+  margin-bottom: 10px;
+}
+
+.current-location-button {
+  background-color: lightgreen;
+  cursor: not-allowed;
+  color: black;
 }
 
 .wealth {
@@ -189,7 +256,6 @@
   background-color: #007bff;
   color: white;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .player-info-box button:hover {
@@ -213,7 +279,7 @@
   background: white;
   padding: 20px;
   border-radius: 10px;
-  max-width: 600px;
+  max-width: 900px;
   width: 80%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -236,4 +302,56 @@
 
 .modal-buttons button:hover {
   background-color: #0056b3;
+}
+
+.modal-container {
+  display: flex;
+  gap: 20px;
+  padding: 10px;
+}
+
+
+.purchased-item {
+  pointer-events: none; /* Disable pointer events */
+}
+
+.purchased-item-button {
+  cursor: not-allowed;
+  background-color: lightgreen;
+  color: black;
+}
+.items-container {
+  border: 2px solid gray;
+  padding:10px;
+}
+
+.items-container ul, .locations-container ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.items-container li, .locations-container li {
+  margin: 5px 0;
+}
+
+.locations-container {
+  border: 2px solid silver;
+  padding:10px;
+}
+
+.warning-text {
+  color: rgb(197, 108, 0);
+}
+
+.success-text {
+  color: green;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  white-space: nowrap;
 }

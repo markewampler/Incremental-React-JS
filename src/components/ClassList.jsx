@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { classes } from '../data/playerData';
+import { classes } from '../data/gameData';
 
 function ClassList({ player, onClassSelect }) {
   const availableClasses = classes.filter((classItem) =>

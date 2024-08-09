@@ -1,62 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import AttributeCard from './components/AttributeCard';
 import PlayerInfo from './components/PlayerInfo';
 import SkillList from './components/SkillList';
-import ClassList from './components/ClassList';
 import { player, calculateMaxAge } from './data/playerData';
+import { locations, items, skills as allSkills, classes } from './data/gameData';
 import { 
-    getAttributes, 
-    increaseAttribute, 
-    calculateLearningSpeed, 
-    filterSkillsByClassAndAttributes, 
-    filterClassesByLocationAndAttributes, 
-    deductWealth, 
-    addWealth } from './utils/utils';
+  calculateLearningSpeed, 
+  filterSkillsByClassAndAttributes, 
+  filterClassesByLocationAndAttributes, 
+  addWealth,
+  calculateDivinePoints,
+  loadPlayerState,
+  savePlayerState
+} from './utils/utils';
 import LocationChangeModal from './components/LocationChangeModal';
-import { locations } from './data/playerData';
 import PurchaseItemsModal from './components/PurchaseItemsModal';
 import ClassChangeModal from './components/ClassChangeModal';
-import DivinePointsModal from './components/DivinePointsModal';
 import MaxAgeModal from './components/MaxAgeModal';
 
+const AGE_INCREMENT = 1
+const TIME_INCREMENT = 1000
 
 function App() {
-  const [playerState, setPlayerState] = useState({
+
+  const intervalRef = useRef(null);
+
+  const initialPlayerState = loadPlayerState() || {
     ...player,
-    wealth: player.wealth,
-    initialAttributes: player.attributes,
+    location: 'Forest',
+    purchasedLocations: player.purchasedLocations || ["Forest"]
+  };
+  const [playerState, setPlayerState] = useState({
+    ...initialPlayerState,
+    attributes: { ...initialPlayerState.attributes },
+    wealth: initialPlayerState.wealth,
+    location: initialPlayerState.location || 'Forest',
+    purchasedLocations: initialPlayerState.purchasedLocations || ["Forest"]
   });
+
+  useEffect(() => {
+    savePlayerState(playerState); 
+  }, [playerState]);
+
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [highlightedAttributes, setHighlightedAttributes] = useState([]);
+  const [highlightedDivinePoints, setHighlightedDivinePoints] = useState(false);
   const [ageInterval, setAgeInterval] = useState(1000); // 1 second per age increase
   const [availableClasses, setAvailableClasses] = useState(filterClassesByLocationAndAttributes(player));
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isClassChangeModalOpen, setIsClassChangeModalOpen] = useState(false);
-  const [isDivinePointsModalOpen, setIsDivinePointsModalOpen] = useState(false);
   const [isMaxAgeModalOpen, setIsMaxAgeModalOpen] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gamePaused, setGamePaused] = useState(false);
-
+  
   useEffect(() => {
-    const newMaxAge = calculateMaxAge(playerState.attributes, playerState.location);
+    const newMaxAge = calculateMaxAge(playerState.attributes);
     setPlayerState(prevState => ({
-        ...prevState,
-        maxAge: newMaxAge
-
+      ...prevState,
+      maxAge: newMaxAge,
     }));
-  }, [playerState.attributes, playerState.location]);
+  }, [playerState.attributes]);
 
   useEffect(() => {
     if (gameStarted && playerState.age >= playerState.maxAge) {
-      const earnedDP = calculateDivinePoints(player.initialAttributes, player.attributes);
-        setPlayerState(prevState => ({
-          ...prevState,
-          dp: earnedDP
-        }))  
-        setIsMaxAgeModalOpen(true);
-        setGamePaused(true); // Pause the game
+      // Update Divine Points to make sure credit is given
+      const earnedDP = calculateDivinePoints(playerState.attributes);
+      setPlayerState(prevState => ({
+        ...prevState,
+        dp: earnedDP
+      }));  
+      setIsMaxAgeModalOpen(true);
+      setGamePaused(true); // Pause the game
     }
   }, [playerState.age, playerState.maxAge, gameStarted]);
 
@@ -64,64 +80,87 @@ function App() {
     // Assume game starts when component mounts
     setGameStarted(true);
   }, []);
-
+  
   useEffect(() => {
-    const filteredSkills = filterSkillsByClassAndAttributes(playerState);
 
-    if (!selectedSkill && filteredSkills.length > 0) {
-      setSelectedSkill(filteredSkills[0]);
+  
+    if (!selectedSkill || gamePaused) {
+      return; // Only run if selectedSkill is defined and game is not paused
     }
-  }, [playerState, selectedSkill]);
-
-
-  useEffect(() => {
-    if (!selectedSkill || gamePaused) return; // Add gamePaused condition here
-
-    const interval = setInterval(() => {
-        setPlayerState(prevState => {
-            const newPlayerState = { ...prevState };
-            const skill = newPlayerState.skills.find(s => s.name === selectedSkill.name);
-            const learningSpeed = calculateLearningSpeed(newPlayerState, skill);
-
-            skill.learned = Math.min(skill.learned + learningSpeed, skill.learningTime);
-
-            if (skill.learned >= skill.learningTime) {
-                // Update attributes
-                Object.entries(skill.effects).forEach(([attr, amount]) => {
-                    if (newPlayerState.attributes[attr]) {
-                        newPlayerState.attributes[attr].value += amount;
-                    }
-                });
-
-                // Highlight attributes
-                setHighlightedAttributes(Object.keys(skill.effects));
-
-                // Reset skill progress
-                skill.learned = 0;
-
-                // Update wealth
-                newPlayerState.wealth = addWealth(newPlayerState.wealth, parseInt(skill.moneyEarned));
+    
+    clearInterval(intervalRef.current); // Clear any existing interval
+  
+    intervalRef.current = setInterval(() => {
+  
+      setPlayerState(prevState => {
+  
+        const newPlayerState = { ...prevState };
+        let skill = newPlayerState.learnedSkills.find(s => s.id === selectedSkill.id);
+  
+        // Initialize skill if not found
+        if (!skill) {
+          skill = { id: selectedSkill.id, learned: 0 };
+          newPlayerState.learnedSkills.push(skill);
+        }
+  
+        const learningSpeed = calculateLearningSpeed(newPlayerState, selectedSkill);
+  
+        // Update age
+        newPlayerState.age += AGE_INCREMENT; 
+  
+        // Update skill progress
+        skill.learned = Math.min(skill.learned + learningSpeed, selectedSkill.learningTime);
+  
+        // Ensure learnedSkills array is updated
+        newPlayerState.learnedSkills = newPlayerState.learnedSkills.map(s =>
+          s.id === skill.id ? { ...skill } : s
+        );
+  
+        savePlayerState(newPlayerState);
+  
+        let updatedSkill = newPlayerState.learnedSkills.find(s => s.id === selectedSkill.id);
+  
+        if (updatedSkill.learned >= selectedSkill.learningTime) {
+          // Update attribute increases
+          Object.entries(selectedSkill.effects).forEach(([attr, amount]) => {
+            if (newPlayerState.attributes[attr]) {
+              newPlayerState.attributes[attr].increasedValue += amount;
             }
-
-            return newPlayerState;
-        });
-    }, 1000);
-
-    return () => clearInterval(interval);
+          });
+          
+          // Highlight attributes
+          setHighlightedAttributes(Object.keys(selectedSkill.effects));
+  
+          // Reset skill progress
+          updatedSkill.learned = 0;
+  
+          // Update wealth and divine points together
+          const updatedWealth = addWealth(newPlayerState.wealth, parseInt(selectedSkill.moneyEarned));
+          const earnedDP = calculateDivinePoints(newPlayerState.attributes);
+          
+          newPlayerState.wealth = updatedWealth;
+          newPlayerState.dp = earnedDP;
+  
+          savePlayerState(newPlayerState);
+  
+          // Highlight divine points
+          setHighlightedDivinePoints(true);
+          setTimeout(() => {
+            setHighlightedDivinePoints(false);
+            setHighlightedAttributes([]);
+          }, 3000); // Remove highlight after 3 seconds
+  
+          return newPlayerState;
+        }
+  
+        return newPlayerState;
+      });
+    }, TIME_INCREMENT);
+  
+    return () => {
+      clearInterval(intervalRef.current); // Clear the interval on cleanup
+    };
   }, [selectedSkill, gamePaused]);
-
-  useEffect(() => {
-    if (gamePaused) return; // Add gamePaused condition here
-
-    const ageIntervalId = setInterval(() => {
-      setPlayerState(prevState => ({
-        ...prevState,
-        age: prevState.age + 1
-      }));
-    }, ageInterval);
-
-    return () => clearInterval(ageIntervalId);
-  }, [ageInterval, gamePaused]);
 
   useEffect(() => {
     if (highlightedAttributes.length > 0) {
@@ -132,104 +171,102 @@ function App() {
     }
   }, [highlightedAttributes]);
 
-  const handleIncreaseAttribute = (name, amount) => {
-    increaseAttribute(playerState, name, amount);
-    setPlayerState({ ...playerState });
+  // Calculate derived attributes
+  const derivedAttributes = Object.keys(playerState.attributes).reduce((acc, key) => {
+    acc[key] = playerState.attributes[key].value + (playerState.attributes[key].increasedValue || 0);
+    return acc;
+  }, {});
+
+
+  const handleSoftReset = (newInitialAttributes, updatedItems, updatedLocations, selectedLocation) => {
+    const newAttributes = { ...playerState.attributes };
+      
+    // Apply new initial values
+    Object.entries(newInitialAttributes).forEach(([key, value]) => {
+      newAttributes[key] = {
+        value: value.value,
+        increasedValue: 0,
+      };
+    });
+  
+    const purchasedItems = updatedItems
+      ? updatedItems.filter(item => item.divinePointPurchase).map(item => ({ ...item, coinPurchased: false }))
+      : [];
+  
+    const purchasedLocations = updatedLocations.length
+      ? updatedLocations.map(locationKey => locationKey)
+      : playerState.purchasedLocations;
+  
+    const newState = {
+      ...playerState,
+      attributes: newAttributes,
+      age: 8,
+      wealth: 0,
+      dp: 0,
+      purchasedItems: purchasedItems,
+      location: selectedLocation || 'Forest',
+      defaultLocation: selectedLocation || 'Forest',
+      purchasedLocations: purchasedLocations // Ensure this is included in the new state
+    };
+  
+    setPlayerState(newState);
+    setSelectedSkill(null);
+    savePlayerState(newState);
+    setGamePaused(false);
   };
+
+
 
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
   };
-
-  const handleClassChange = (newClassName) => {
+  
+  const handleClassChange = (newClassName, setPlayerState, setSelectedSkill) => {
     setPlayerState(prevState => ({ ...prevState, className: newClassName }));
     setSelectedSkill(null); // Clear the selected skill when the class changes
   };
-
+  
   const handleLocationChange = (newLocation, updatedWealth) => {
     setPlayerState(prevState => ({
       ...prevState,
       location: newLocation,
       wealth: updatedWealth
     }));
-    console.log(playerState)
+
     setAvailableClasses(filterClassesByLocationAndAttributes({ ...playerState, location: newLocation }));
     setSelectedSkill(null); // Clear the selected skill when the location changes
   };
+  
+  const handlePurchaseItem = (itemCost, itemName) => {
+    setPlayerState(prevState => {
+      
+      // Check if the item is already in the purchasedItems array
+      const existingItem = prevState.purchasedItems.find(item => item.name === itemName);
+  
+      let updatedItems;
+      if (existingItem) {
+        // If the item is already purchased, update the purchase method
+        updatedItems = prevState.purchasedItems.map(item =>
+          item.name === itemName ? { ...item, coinPurchased: true } : item
+        );
+      } else {
+        // If the item is not already purchased, add it to the purchasedItems array
+        updatedItems = [
+          ...prevState.purchasedItems,
+          { name: itemName, coinPurchased: true, divinePointPurchase: false }
+        ];
+      }
 
-  const handlePurchaseItem = (itemCost, itemEffect) => {
-    if (playerState.wealth >= itemCost) {
-      setPlayerState(prevState => ({
+      return {
         ...prevState,
-        wealth: deductWealth(prevState.wealth, itemCost),
-        ...itemEffect
-      }));
-    } else {
-      alert('Insufficient funds to purchase this item.');
-    }
+        wealth: prevState.wealth - itemCost,
+        purchasedItems: updatedItems,
+      };
+    });
   };
 
-  const handleSpendDP = (type, value) => {
-    if (type.startsWith('attribute-')) {
-        const attribute = type.split('-')[1];
-        setPlayerState(prevState => ({
-            ...prevState,
-            dp: prevState.dp - value,
-            attributes: {
-                ...prevState.attributes,
-                [attribute]: { value: prevState.attributes[attribute].value + 1 }
-            }
-        }));
-    } else if (type.startsWith('location-')) {
-        const location = type.split('-')[1];
-        setPlayerState(prevState => ({
-            ...prevState,
-            dp: prevState.dp - value,
-            startingLocationWeight: {
-                ...prevState.startingLocationWeight,
-                [location]: prevState.startingLocationWeight[location] + 1
-            }
-        }));
-    }
-};
 
-const calculateDivinePoints = (initialAttributes, finalAttributes) => {
-  let initialTotal = 0;
-  let finalTotal = 0;
-  console.log(initialTotal + ' Initial')
-  console.log(finalTotal + ' Initial')
-  for (const attr in initialAttributes) {
-      initialTotal += initialAttributes[attr].value;
-  }
-  for (const attr in finalAttributes) {
-    finalTotal += finalAttributes[attr].value;
-}
-console.log(initialTotal + ' After')
-console.log(finalTotal + ' After')
-  return Math.floor((finalTotal - initialTotal) / 5);
-};
 
-const handleSoftReset = (newAttributes, newLocationWeights) => {
-  const newLocation = 'Rural'
-
-  console.log(newAttributes)
-
-  setPlayerState(prevState => ({
-      ...prevState,
-      age: 8,
-      wealth: 0,
-      location: newLocation,
-      attributes: newAttributes,
-      initialAttributes: newAttributes,
-      startingLocationWeight: newLocationWeights,
-      dp: prevState.dp,
-  }));
-  console.log(playerState)
-  setIsMaxAgeModalOpen(false);
-  setGamePaused(false); // Resume the game
-};
-
-  const attributes = getAttributes(playerState);
   const filteredSkills = filterSkillsByClassAndAttributes(playerState);
 
   const openLocationModal = () => setIsLocationModalOpen(true);
@@ -240,79 +277,82 @@ const handleSoftReset = (newAttributes, newLocationWeights) => {
 
   const openClassChangeModal = () => setIsClassChangeModalOpen(true);
   const closeClassChangeModal = () => setIsClassChangeModalOpen(false);
-  
-  const openDivinePointsModal = () => setIsDivinePointsModalOpen(true);
-  const closeDivinePointsModal = () => setIsDivinePointsModalOpen(false);
-
 
   return (
     <div className="app-container">
       <div className="attribute-container">
-        {attributes.map((attr, index) => (
-          <div
+        {Object.keys(derivedAttributes).map((key, index) => (
+          <AttributeCard 
             key={index}
-            className={`attribute-card ${highlightedAttributes.includes(attr.name) ? 'highlight' : ''}`}
-          >
-            <AttributeCard name={attr.name} value={attr.value} />
-          </div>
-        ))}
+            name={key} 
+            value={derivedAttributes[key]} 
+            highlighted={`${highlightedAttributes.includes(key) ? 'highlight' : ''}`}
+            />
+
+      ))}
       </div>
       <PlayerInfo
         player={playerState}
+        highlightedDivinePoints={highlightedDivinePoints}
         onOpenLocationModal={openLocationModal}
         onOpenPurchaseModal={openPurchaseModal}
         onOpenClassChangeModal={openClassChangeModal}
-        onOpenDivinePointsModal={openDivinePointsModal}
       />
 
-      <SkillList skills={filteredSkills} selectedSkill={selectedSkill} onSelectSkill={handleSelectSkill} />
+<SkillList
+    skills={filteredSkills.map(skill => ({
+      ...skill,
+      learnedProgress: playerState.learnedSkills.find(s => s.id === skill.id)?.learned || 0
+    }))}
+    selectedSkill={selectedSkill}
+    onSelectSkill={skill => handleSelectSkill(skill, setSelectedSkill)}
+  />
 
-
-      {isLocationModalOpen && (
-        <LocationChangeModal
-          isOpen={isLocationModalOpen}
-          player={playerState}
-          locations={locations}
-          currentLocation={playerState.location}
-          onLocationChange={handleLocationChange}
-          onClose={closeLocationModal}
-        />
-      )}
-      {isPurchaseModalOpen && (
-        <PurchaseItemsModal
-          player={playerState}
-          isOpen={isPurchaseModalOpen}
-          onClose={closePurchaseModal}
-          onPurchaseItem={handlePurchaseItem}
-        />
-      )}
-      {isClassChangeModalOpen && (
-        <ClassChangeModal
-          isOpen={isClassChangeModalOpen}
-          player={playerState}
-          onClassChange={handleClassChange}
-          onClose={closeClassChangeModal}
-        />
-      )}
-      {isDivinePointsModalOpen && (
-        <DivinePointsModal
-          isOpen={isDivinePointsModalOpen}
-          onClose={closeDivinePointsModal}
-          player={playerState}
-          onSpendDP={handleSpendDP}
-        />
-      )}
-
-      {isMaxAgeModalOpen && (<MaxAgeModal
-                isOpen={isMaxAgeModalOpen}
-                onClose={() => setIsMaxAgeModalOpen(false)}
-                player={playerState}
-                onSpendDP={handleSpendDP}
-                onSoftReset={handleSoftReset}
-            />
-      )}
-    </div>
-  );
-}
-
-export default App;
+    {isLocationModalOpen && (
+      <LocationChangeModal
+        isOpen={isLocationModalOpen}
+        player={playerState}
+        locations={locations}
+        currentLocation={playerState.location}
+        onLocationChange={(newLocation, updatedWealth) => handleLocationChange(newLocation, updatedWealth)}
+        onClose={closeLocationModal}
+      />
+    )}
+    {isPurchaseModalOpen && (
+      <PurchaseItemsModal
+        isOpen={isPurchaseModalOpen}
+        onClose={closePurchaseModal}
+        onPurchaseItem={(itemCost, itemName) => handlePurchaseItem(itemCost, itemName)}
+        items={items}  // Pass the static items from gameData
+        playerItems={playerState.purchasedItems}
+        wealth={playerState.wealth}
+        playerLocation={playerState.location}
+      />
+    )}
+    {isClassChangeModalOpen && (
+      <ClassChangeModal
+        isOpen={isClassChangeModalOpen}
+        player={playerState}
+        onClassChange={newClassName => handleClassChange(newClassName, setPlayerState, setSelectedSkill)}
+        onClose={closeClassChangeModal}
+      />
+    )}
+    {isMaxAgeModalOpen && (
+      <MaxAgeModal
+        isOpen={isMaxAgeModalOpen}
+        onClose={() => setIsMaxAgeModalOpen(false)}
+        onSoftReset={(newInitialAttributes, updatedItems, updatedLocations, newSelectedLocation) => handleSoftReset(newInitialAttributes, updatedItems, updatedLocations, newSelectedLocation, setPlayerState)}
+        attributes={playerState.attributes}
+        divinePoints={playerState.dp}
+        items={playerState.purchasedItems}  // Pass the static items from gameData
+        locations={locations}  // Pass the static locations from gameData
+        defaultLocation={playerState.defaultLocation}
+        playerItems={playerState.purchasedItems}
+        player={playerState}
+      />
+    )}
+  </div>
+);
+  }
+  
+  export default App;

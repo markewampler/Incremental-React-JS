@@ -1,23 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { locations } from '../data/playerData';
+import { locations } from '../data/gameData';
 import { deductWealth } from '../utils/utils';
-import LocationList from './LocationList';
 
 function LocationChangeModal({ isOpen, onClose, player, onLocationChange }) {
   if (!isOpen) return null;
 
   const handleConfirm = (locationName, cost) => {
-    const canAfford = player.wealth >= cost;
-    const location = locations[locationName];
-    const meetsClassDependency = !location.requiresClassDependency || location.classDependencies.includes(player.className);
-
-    if (canAfford && meetsClassDependency) {
-      const updatedWealth = deductWealth(player.wealth, cost);
+    const isPurchased = player.purchasedLocations.includes(locationName);
+    const finalCost = isPurchased ? 0 : cost;
+    const canAfford = player.wealth >= finalCost;
+    
+    if (canAfford) {
+      const updatedWealth = deductWealth(player.wealth, finalCost);
       onLocationChange(locationName, updatedWealth);
       onClose(); // Close modal after confirming
     } else {
-      alert('Cannot change location due to insufficient funds or class dependency not met.');
+      alert('Cannot change location due to insufficient funds.');
     }
   };
 
@@ -25,7 +24,27 @@ function LocationChangeModal({ isOpen, onClose, player, onLocationChange }) {
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>Change Location</h2>
-        <LocationList player={player} onLocationSelect={handleConfirm} />
+        <div>
+          {Object.keys(locations).map(locationName => {
+            const location = locations[locationName];
+            const isCurrentLocation = player.location === locationName;
+            const isPurchased = player.purchasedLocations.includes(locationName);
+            const finalCost = isPurchased ? 0 : location.cost;
+            const canChangeLocation = player.wealth >= finalCost;
+
+            return (
+              <div key={locationName} className={`location-item ${isCurrentLocation ? 'current-location' : ''}`}>
+                <button
+                  onClick={() => handleConfirm(locationName, finalCost)}
+                  disabled={!canChangeLocation || isCurrentLocation}
+                  className={isCurrentLocation ? 'current-location-button' : ''}
+                >
+                  {isCurrentLocation ? `Your Current Location - ${locationName}` : `${locationName} - Cost: ${finalCost} coins`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
         <div className="modal-buttons">
           <button onClick={onClose}>Close</button>
         </div>

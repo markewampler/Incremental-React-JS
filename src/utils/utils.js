@@ -1,4 +1,8 @@
-import { classes } from '../data/playerData';
+import { player } from '../data/playerData';
+import { skills  as allSkills, items, classes } from '../data/gameData';
+
+const LEARNING_CAP_PERCENTAGE = 0.10;
+const DIVINE_POINT_DIVISOR = 3;
 
 export function getAttributes(player) {
   if (!player?.attributes) return [];
@@ -17,7 +21,14 @@ export function increaseAttribute(player, name, amount) {
   }
 }
 
-export function calculateLearningSpeed(player, skill) {
+export const calculateLearningSpeed = (playerState, skill) => {
+  const baseLearningSpeed = calculateBaseLearningSpeed(playerState, skill);
+  const cap = skill.learningTime * LEARNING_CAP_PERCENTAGE;
+  return Math.min(baseLearningSpeed, cap);
+  
+};
+
+export function calculateBaseLearningSpeed(player, skill) {
   if (!player?.attributes || !skill?.multipliers) return 1;
 
   let speed = 1;
@@ -29,14 +40,18 @@ export function calculateLearningSpeed(player, skill) {
   }
   return speed;
 }
+
+
 export function filterSkillsByClassAndAttributes(player) {
-  return player.skills.filter(skill => {
+  return allSkills.filter(skill => {
     const meetsClassDependency = skill.classDependency.includes(player.className);
     const meetsAttributeDependency = Object.entries(skill.attributeDependency).every(
       ([attr, value]) => player.attributes[attr].value >= value
     );
     const meetsLocationDependency = skill.locationDependency.includes(player.location);
-    return meetsClassDependency && meetsAttributeDependency && meetsLocationDependency;
+    const meetsItemDependency = !skill.itemDependency || player.purchasedItems.some(item => item.name === skill.itemDependency && (item.coinPurchased || item.divinePointPurchase));
+
+    return meetsClassDependency && meetsAttributeDependency && meetsLocationDependency && meetsItemDependency;
   });
 }
 
@@ -81,7 +96,23 @@ export const deductWealth = (currentWealth, deductionAmount) => {
   return currentWealth - deductionAmount;
 };
 
-export const formatWealth = (totalCoins) => {
-  return `${totalCoins} coins`;
+export const calculateDivinePoints = (attributes) => {
+  let points = 0;
+  for (const key in attributes) {
+    if (attributes[key].increasedValue) {
+      points += attributes[key].increasedValue;
+      
+    }
+  }
+  points = Math.floor(points / DIVINE_POINT_DIVISOR);
+  return points > 0 ? points : 0;
 };
 
+export const loadPlayerState = () => {
+  const savedState = localStorage.getItem('playerState');
+  return savedState ? JSON.parse(savedState) : null;
+};
+
+export const savePlayerState = (playerState) => {
+  localStorage.setItem('playerState', JSON.stringify(playerState));
+};
