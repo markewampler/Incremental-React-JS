@@ -105,13 +105,11 @@ const MaxAgeModal = ({ isOpen, onClose, onSoftReset, attributes, divinePoints, p
                 <div key={key} className="attribute-control">
                   <div className="attribute-name">{key}</div>
                   <div className="attribute-buttons">
-                    {divinePoints >= 10 && <button className="attribute-button" onClick={() => handleAttributeChange(key, 10)} disabled={availableDivinePoints < 10}>+10</button>}
                     {divinePoints >= 5 && <button className="attribute-button" onClick={() => handleAttributeChange(key, 5)} disabled={availableDivinePoints < 5}>+5</button>}
                     <button className="attribute-button" onClick={() => handleAttributeChange(key, 1)} disabled={availableDivinePoints < 1}>+1</button>
                     <div className="attribute-value">{tempAttributes[key].value}</div>
                     <button className="attribute-button" onClick={() => handleAttributeChange(key, -1)} disabled={tempAttributes[key].value <= initialValues[key]}>-1</button>
                     {initialValues[key] + 4 < tempAttributes[key].value && <button className="attribute-button" onClick={() => handleAttributeChange(key, -5)} disabled={tempAttributes[key].value <= initialValues[key] + 4}>-5</button>}
-                    {initialValues[key] + 9 < tempAttributes[key].value && <button className="attribute-button" onClick={() => handleAttributeChange(key, -10)} disabled={tempAttributes[key].value <= initialValues[key] + 9}>-10</button>}
                   </div>
                 </div>
               ))}
@@ -122,7 +120,7 @@ const MaxAgeModal = ({ isOpen, onClose, onSoftReset, attributes, divinePoints, p
               <ul>
                 {gameItems.map((item, index) => {
                   const playerItem = updatedItems.find(pItem => pItem.name === item.name);
-                  const isPurchased = playerItem && (playerItem.coinPurchased || playerItem.divinePointPurchase);
+                  const isPurchased = playerItem && (playerItem.divinePointPurchase);
 
                   return (
                     <li key={index} style={{ whiteSpace: 'nowrap' }}>

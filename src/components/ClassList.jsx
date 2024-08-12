@@ -4,9 +4,9 @@ import { classes } from '../data/gameData';
 
 function ClassList({ player, onClassSelect }) {
   const availableClasses = classes.filter((classItem) =>
-    classItem.locationDependency.includes(player.location)
+    classItem.locationDependency.length === 0 || classItem.locationDependency.includes(player.location)
   );
-
+  console.log(classes)
   return (
     <div className="class-list">
       {availableClasses.map((classItem) => (

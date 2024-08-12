@@ -138,13 +138,15 @@ function App() {
           const updatedWealth = addWealth(newPlayerState.wealth, parseInt(selectedSkill.moneyEarned));
           const earnedDP = calculateDivinePoints(newPlayerState.attributes);
           
+          if (earnedDP > newPlayerState.dp) {
+            setHighlightedDivinePoints(true);
+            } 
+
           newPlayerState.wealth = updatedWealth;
           newPlayerState.dp = earnedDP;
   
           savePlayerState(newPlayerState);
   
-          // Highlight divine points
-          setHighlightedDivinePoints(true);
           setTimeout(() => {
             setHighlightedDivinePoints(false);
             setHighlightedAttributes([]);
@@ -203,9 +205,11 @@ function App() {
       age: 8,
       wealth: 0,
       dp: 0,
+      className: 'Peasant',
       purchasedItems: purchasedItems,
       location: selectedLocation || 'Forest',
       defaultLocation: selectedLocation || 'Forest',
+      learnedSkills: [],
       purchasedLocations: purchasedLocations // Ensure this is included in the new state
     };
   

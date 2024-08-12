@@ -20,7 +20,7 @@ export const skills = [
     learningTime: 1000,
     classDependency: ['Peasant'],
     attributeDependency: { INT: 5 },
-    locationDependency: ['Rural', 'Village'],
+    locationDependency: [],
     moneyEarned: 15,
     itemDependency: null
     },
@@ -29,7 +29,7 @@ export const skills = [
     name: 'Hunting',
     effects: { STA: 1, WIS: 2 },
     multipliers: { DEX: 0.5, WIS: 0.5 },
-    learningTime: 200,
+    learningTime: 4000,
     classDependency: ['Peasant', 'Hunter'],
     attributeDependency: { DEX: 5 },
     locationDependency: ['Rural', 'Village', 'Forest'],
@@ -191,7 +191,7 @@ export const locations = {
 export const classes = [
     { 
     name: 'Peasant', 
-    locationDependency: ['Rural', 'Village'], 
+    locationDependency: [], 
     attributeDependencies: [] 
     },
     { 

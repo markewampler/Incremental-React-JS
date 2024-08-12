@@ -355,3 +355,13 @@ ul {
 li {
   white-space: nowrap;
 }
+
+.skill.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.unmet-dependencies {
+  color: red;
+  margin-left: 10px;
+}

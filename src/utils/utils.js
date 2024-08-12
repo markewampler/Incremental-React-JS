@@ -2,7 +2,8 @@ import { player } from '../data/playerData';
 import { skills  as allSkills, items, classes } from '../data/gameData';
 
 const LEARNING_CAP_PERCENTAGE = 0.10;
-const DIVINE_POINT_DIVISOR = 3;
+const DIVINE_POINT_DIVISOR = 10;
+const LEARNING_SPEED_DIVISOR =1;
 
 export function getAttributes(player) {
   if (!player?.attributes) return [];
@@ -35,7 +36,7 @@ export function calculateBaseLearningSpeed(player, skill) {
   for (const [attr, multiplier] of Object.entries(skill.multipliers)) {
     const attribute = player.attributes[attr];
     if (attribute) {
-      speed += attribute.value * multiplier;
+      speed += (attribute.value + attribute.increasedValue) * multiplier / LEARNING_SPEED_DIVISOR;
     }
   }
   return speed;
@@ -43,27 +44,36 @@ export function calculateBaseLearningSpeed(player, skill) {
 
 
 export function filterSkillsByClassAndAttributes(player) {
-  return allSkills.filter(skill => {
-    const meetsClassDependency = skill.classDependency.includes(player.className);
-    const meetsAttributeDependency = Object.entries(skill.attributeDependency).every(
-      ([attr, value]) => player.attributes[attr].value >= value
-    );
-    const meetsLocationDependency = skill.locationDependency.includes(player.location);
-    const meetsItemDependency = !skill.itemDependency || player.purchasedItems.some(item => item.name === skill.itemDependency && (item.coinPurchased || item.divinePointPurchase));
+  return allSkills
+    .filter(skill => skill.classDependency.includes(player.className))
+    .map(skill => {
+      const meetsAttributeDependency = Object.entries(skill.attributeDependency).every(
+        ([attr, value]) => (player.attributes[attr].value + player.attributes[attr].increasedValue) >= value
+      );
+      const meetsLocationDependency = skill.locationDependency.length === 0 || skill.locationDependency.includes(player.location);
+      const meetsItemDependency = !skill.itemDependency || player.purchasedItems.some(item => item.name === skill.itemDependency && (item.coinPurchased || item.divinePointPurchase));
 
-    return meetsClassDependency && meetsAttributeDependency && meetsLocationDependency && meetsItemDependency;
-  });
+      return {
+        ...skill,
+        isAvailable: meetsAttributeDependency && meetsLocationDependency && meetsItemDependency,
+        unmetDependencies: {
+          attribute: !meetsAttributeDependency,
+          location: !meetsLocationDependency,
+          item: !meetsItemDependency,
+        }
+      };
+    });
 }
 
 // Check if the player meets both location and attribute dependencies for a class
 export function filterClassesByLocationAndAttributes(player) {
   return classes.filter(cls => {
-    const meetsLocationDependency = cls.locationDependency.includes(player.location);
+    const meetsLocationDependency = cls.locationDependency.length === 0 || cls.locationDependency.includes(player.location);
 
     // Ensure attributeDependencies exists and is an array before using it
     const meetsAttributeDependency = cls.attributeDependencies
       ? cls.attributeDependencies.every(dep =>
-          player.attributes[dep.attribute]?.value >= dep.value
+          (player.attributes[dep.attribute]?.value + player.attributes[dep.attribute]?.increasedValue) >= dep.value
         )
       : true; // If no attributeDependencies, assume the player meets this requirement
 
@@ -78,8 +88,8 @@ export function canClassBeSelected(player, selectedClass) {
   if (!classData) return false;
 
   // Check location dependency
-  const meetsLocationDependency = classData.locationDependency.includes(player.location);
-
+  const meetsLocationDependency = classData.locationDependency.length === 0 || classData.locationDependency.includes(player.location);
+  console.log(meetsLocationDependency + ' ' + classData.name)
   // Check attribute dependencies
   const meetsAttributeDependency = classData.attributeDependencies.every(dep =>
     player.attributes[dep.attribute]?.value >= dep.value
